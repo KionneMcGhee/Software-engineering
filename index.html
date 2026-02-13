@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laila ❤️</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  text-align: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ffd6e8, #ff8fab);
+  transition: 0.6s ease;
+}
+
+.container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 500px;
+}
+
+h1 {
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+}
+
+p {
+  font-size: 1.1rem;
+}
+
+img {
+  width: 250px;
+  margin: 20px 0;
+}
+
+button {
+  padding: 12px 25px;
+  font-size: 1rem;
+  border-radius: 30px;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+#yesBtn {
+  background: #ff3366;
+  color: white;
+  margin-right: 10px;
+}
+
+#noBtn {
+  background: #444;
+  color: white;
+  position: absolute;
+}
+
+.hidden {
+  display: none;
+}
+
+.confetti {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  background: red;
+  top: -10px;
+  animation: fall 3s linear forwards;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(100vh) rotate(720deg);
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container" id="intro">
+  <h1>Welcome Laila…</h1>
+  <p>This is a very serious question.</p>
+  <img src="https://media.giphy.com/media/3o7TKsQ8UQd0W9qf3O/giphy.gif">
+  <p>Tralalero Tralala has something important to ask you.</p>
+  <button onclick="startQuestion()">Continue</button>
+</div>
+
+<div class="container hidden" id="question">
+  <h1>Laila… will you be my Valentine?</h1>
+  <p>From Kionne 🥺</p>
+  <img id="mainGif" src="https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif">
+  <div>
+    <button id="yesBtn" onclick="sayYes()">Yes, Kionne ❤️</button>
+    <button id="noBtn">No…</button>
+  </div>
+</div>
+
+<div class="container hidden" id="celebrate">
+  <h1>SHE SAID YES ❤️</h1>
+  <p>Laila + Kionne = Valentine’s locked in.</p>
+  <img src="https://media.giphy.com/media/111ebonMs90YLu/giphy.gif">
+</div>
+
+<script>
+let noBtn = document.getElementById("noBtn");
+let yesBtn = document.getElementById("yesBtn");
+let attempt = 0;
+
+function startQuestion() {
+  document.getElementById("intro").classList.add("hidden");
+  document.getElementById("question").classList.remove("hidden");
+  moveNoButton();
+}
+
+function moveNoButton() {
+  noBtn.style.top = Math.random() * 70 + "%";
+  noBtn.style.left = Math.random() * 70 + "%";
+}
+
+noBtn.addEventListener("mouseover", function() {
+  attempt++;
+  moveNoButton();
+  yesBtn.style.transform = "scale(" + (1 + attempt * 0.1) + ")";
+  noBtn.textContent = ["Laila…", "Be serious.", "That’s crazy.", "Try again.", "Wrong choice."][attempt % 5];
+});
+
+noBtn.addEventListener("click", function(e) {
+  e.preventDefault();
+  moveNoButton();
+});
+
+function sayYes() {
+  document.getElementById("question").classList.add("hidden");
+  document.getElementById("celebrate").classList.remove("hidden");
+  document.body.style.background = "linear-gradient(135deg, #ff4d6d, #c9184a)";
+  launchConfetti();
+}
+
+function launchConfetti() {
+  for (let i = 0; i < 100; i++) {
+    let confetti = document.createElement("div");
+    confetti.classList.add("confetti");
+    confetti.style.left = Math.random() * 100 + "vw";
+    confetti.style.background = ["#ff0","#ff3366","#00f","#0f0"][Math.floor(Math.random()*4)];
+    document.body.appendChild(confetti);
+    setTimeout(() => confetti.remove(), 3000);
+  }
+}
+</script>
+
+</body>
+</html>
