@@ -1,197 +1,125 @@
 """
-Name: Kionne McGhee II
-SID: YOUR_SID_HERE
+Boggle solver.
 
-Boggle Solver
-- No imports used (per assignment requirement)
-- Finds all dictionary words present in the grid using adjacency (including diagonals)
-- A cell may not be reused within a single word path
-- Words must be at least length 3 (length counted as characters in the built word string)
-- Supports multi-character tiles like "Qu", "St", "Ie" naturally (tile string is appended)
+Name: <YOUR NAME HERE>
+SID:  <YOUR SID HERE>
+
+Given an NxN grid of letter tiles and a dictionary of words, find every
+dictionary word that can be traced through adjacent tiles (including the four
+diagonals) without reusing a tile within a single word.
+
+Tiles may carry more than one letter ("Qu", "St", "Ie"); a multi-letter tile
+contributes all of its letters to the word being built. Matching is
+case-insensitive and words must be at least three letters long.
+
+Uses only built-in types (list, dict, set, str) and no imported libraries.
 """
 
-class Boggle:
-    """
-    Boggle solver class.
-    Data members required by spec:
-      - grid
-      - dictionary
-      - solutions
-    """
+MIN_WORD_LENGTH = 3
 
-    def __init__(self, grid=None, dictionary=None):
-        """Constructor: store grid/dictionary, init solutions list."""
-        self.grid = None
-        self.dictionary = None
-        self.solutions = []
-        self.setGrid(grid if grid is not None else [])
-        self.setDictionary(dictionary if dictionary is not None else [])
+
+class Boggle:
+    """Finds every dictionary word contained in a Boggle grid."""
+
+    def __init__(self, grid, dictionary):
+        """Store the grid and dictionary and start with an empty solution."""
+        self.grid = grid
+        self.dictionary = dictionary
+        self.solution = []
 
     def setGrid(self, grid):
-        """
-        Setter for grid (2D array of strings).
-        If invalid, stores None.
-        """
-        if self._is_valid_grid(grid):
-            # Normalize to strings and keep as-is (case-sensitive handling decided below)
-            self.grid = grid
-        else:
-            self.grid = None
+        """Replace the current grid (a 2D list of tile strings)."""
+        self.grid = grid
 
     def setDictionary(self, dictionary):
-        """
-        Setter for dictionary (array of words).
-        If invalid, stores None.
-        """
-        if self._is_valid_dictionary(dictionary):
-            self.dictionary = dictionary
-        else:
-            self.dictionary = None
+        """Replace the current dictionary (a list of words)."""
+        self.dictionary = dictionary
 
     def getSolution(self):
-        """
-        Returns array of found words, or empty array if:
-          - grid/dictionary invalid
-          - no words found
-          - any error
-        """
-        try:
-            if self.grid is None or self.dictionary is None:
-                return []
+        """Return the list of words found in the grid, or [] if none/invalid."""
+        self.solution = []
+        if not self._is_valid_grid() or not isinstance(self.dictionary, list):
+            return self.solution
 
-            rows = len(self.grid)
-            cols = len(self.grid[0])
+        # Map each normalized word to its original spelling, and gather every
+        # prefix so the search can stop early on dead-end paths.
+        words_by_normalized = {}
+        prefixes = set()
+        for word in self.dictionary:
+            if not isinstance(word, str) or len(word) < MIN_WORD_LENGTH:
+                continue
+            normalized = word.lower()
+            words_by_normalized.setdefault(normalized, word)
+            for end in range(1, len(normalized) + 1):
+                prefixes.add(normalized[:end])
 
-            # Build quick lookup sets (use uppercase for consistent matching)
-            word_set = set()
-            prefix_set = set()
+        rows = len(self.grid)
+        cols = len(self.grid[0])
+        visited = [[False] * cols for _ in range(rows)]
+        found = set()
 
-            for w in self.dictionary:
-                if not isinstance(w, str):
-                    continue
-                w2 = w.strip()
-                if len(w2) == 0:
-                    continue
-                w2u = w2.upper()
-                word_set.add(w2u)
-                # Build all prefixes for pruning
-                # Example: "QUART" adds "Q","QU","QUA","QUAR","QUART"
-                for i in range(1, len(w2u) + 1):
-                    prefix_set.add(w2u[:i])
+        def search(row, col, prefix):
+            """Depth-first search, extending the word along neighbor tiles."""
+            candidate = prefix + self.grid[row][col].lower()
 
-            found = set()
+            # If no word starts with this path, it can never become a word.
+            if candidate not in prefixes:
+                return
 
-            # Pre-normalize grid tiles to uppercase strings
-            grid_u = []
-            for r in range(rows):
-                row_u = []
-                for c in range(cols):
-                    tile = self.grid[r][c]
-                    # tile must be a string (validated), but be defensive:
-                    if not isinstance(tile, str):
-                        tile = ""
-                    row_u.append(tile.upper())
-                grid_u.append(row_u)
+            if len(candidate) >= MIN_WORD_LENGTH and candidate in words_by_normalized:
+                found.add(words_by_normalized[candidate])
 
-            visited = [[False for _ in range(cols)] for _ in range(rows)]
+            visited[row][col] = True
+            for next_row, next_col in self._neighbors(row, col, rows, cols):
+                if not visited[next_row][next_col]:
+                    search(next_row, next_col, candidate)
+            visited[row][col] = False
 
-            # Explore from every starting cell
-            for r in range(rows):
-                for c in range(cols):
-                    self._dfs(r, c, grid_u, visited, "", prefix_set, word_set, found)
+        for row in range(rows):
+            for col in range(cols):
+                search(row, col, "")
 
-            # Save and return solutions in a stable order
-            self.solutions = sorted(list(found))
-            return self.solutions
+        self.solution = sorted(found)
+        return self.solution
 
-        except:
-            # Spec: return empty array on any error
-            return []
-
-    # -------------------------
-    # Internal helper functions
-    # -------------------------
-
-    def _dfs(self, r, c, grid_u, visited, current, prefix_set, word_set, found):
-        """
-        Depth-first search from (r,c), building words by appending tile strings.
-        Uses prefix_set to prune paths early.
-        """
-        if visited[r][c]:
-            return
-
-        next_word = current + grid_u[r][c]
-
-        # Prune if not a prefix of any dictionary word
-        if next_word not in prefix_set:
-            return
-
-        visited[r][c] = True
-
-        # If it's a full word and length >= 3, record it
-        # Length counts characters in the combined string, matching typical grading expectations.
-        if len(next_word) >= 3 and next_word in word_set:
-            found.add(next_word)
-
-        rows = len(grid_u)
-        cols = len(grid_u[0])
-
-        # 8 directions (including diagonals)
-        for dr in (-1, 0, 1):
-            for dc in (-1, 0, 1):
-                if dr == 0 and dc == 0:
-                    continue
-                nr = r + dr
-                nc = c + dc
-                if 0 <= nr < rows and 0 <= nc < cols and not visited[nr][nc]:
-                    self._dfs(nr, nc, grid_u, visited, next_word, prefix_set, word_set, found)
-
-        visited[r][c] = False
-
-    def _is_valid_grid(self, grid):
-        """
-        Grid must be a non-empty 2D list (NxN or NxM is fine unless your grader enforces NxN),
-        containing ONLY strings, and rectangular (all rows same length).
-        """
+    def _is_valid_grid(self):
+        """Return True when the grid is a non-empty rectangle of strings."""
+        grid = self.grid
         if not isinstance(grid, list) or len(grid) == 0:
             return False
         if not isinstance(grid[0], list) or len(grid[0]) == 0:
             return False
-
-        row_len = None
+        cols = len(grid[0])
         for row in grid:
-            if not isinstance(row, list) or len(row) == 0:
+            if not isinstance(row, list) or len(row) != cols:
                 return False
-            if row_len is None:
-                row_len = len(row)
-            if len(row) != row_len:
-                return False
-            for cell in row:
-                if not isinstance(cell, str) or len(cell) == 0:
+            for tile in row:
+                if not isinstance(tile, str) or len(tile) == 0:
                     return False
         return True
 
-    def _is_valid_dictionary(self, dictionary):
-        """Dictionary must be a list of strings (can be empty, but then solution will be empty)."""
-        if not isinstance(dictionary, list):
-            return False
-        for w in dictionary:
-            if not isinstance(w, str):
-                return False
-        return True
+    @staticmethod
+    def _neighbors(row, col, rows, cols):
+        """Yield in-bounds neighbor coordinates, diagonals included."""
+        for d_row in (-1, 0, 1):
+            for d_col in (-1, 0, 1):
+                if d_row == 0 and d_col == 0:
+                    continue
+                next_row = row + d_row
+                next_col = col + d_col
+                if 0 <= next_row < rows and 0 <= next_col < cols:
+                    yield (next_row, next_col)
 
 
 def main():
-    # Example from your prompt
-    grid = [["T", "W", "Y", "R"],
-            ["E", "N", "P", "H"],
-            ["G", "Z", "Qu", "R"],
-            ["O", "N", "T", "A"]]
-
-    dictionary = ["art", "ego", "gent", "get", "net", "new", "newt", "prat", "pry",
-                  "qua", "quart", "quartz", "rat", "tar", "tarp", "ten", "went",
-                  "wet", "arty", "rhr", "not", "quar"]
-
+    """Build a Boggle game from the sample input and print the solution."""
+    grid = [
+        ["A", "B", "C", "D"],
+        ["E", "F", "G", "H"],
+        ["Ie", "J", "K", "L"],
+        ["A", "B", "C", "D"],
+    ]
+    dictionary = ["ABEF", "AFJIEB", "DGKD", "DGKA"]
     mygame = Boggle(grid, dictionary)
     print(mygame.getSolution())
 

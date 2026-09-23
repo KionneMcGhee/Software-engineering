@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Boggle Solver — Interactive Demo</title>
+    <style>
+      :root {
+        --bg: #faf9f5;
+        --surface: #ffffff;
+        --muted-surface: #f1efe8;
+        --text: #1f1e1c;
+        --muted: #6b6a64;
+        --border: #d8d6cc;
+        --accent: #185fa5;
+        --accent-bg: #e6f1fb;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 2rem 1rem;
+        line-height: 1.6;
+      }
+      main {
+        max-width: 560px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        font-weight: 600;
+        margin: 0 0 0.25rem;
+      }
+      p.sub {
+        color: var(--muted);
+        margin: 0 0 1.5rem;
+        font-size: 15px;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 1.25rem;
+      }
+      input[type="text"] {
+        flex: 1;
+        min-width: 150px;
+        height: 38px;
+        padding: 0 12px;
+        font-size: 15px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
+      }
+      button {
+        height: 38px;
+        padding: 0 14px;
+        font-size: 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
+        cursor: pointer;
+      }
+      button:hover {
+        background: var(--muted-surface);
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      .board {
+        position: relative;
+        width: 264px;
+        margin: 0 auto 1.25rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 60px);
+        grid-auto-rows: 60px;
+        gap: 8px;
+      }
+      .tile {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        font-weight: 600;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        user-select: none;
+      }
+      .tile.on {
+        background: var(--accent-bg);
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+      .badge {
+        position: absolute;
+        top: -7px;
+        left: -7px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 1rem;
+      }
+      .card {
+        background: var(--muted-surface);
+        border-radius: 8px;
+        padding: 0.85rem 1rem;
+      }
+      .card .lab {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .card .val {
+        font-size: 24px;
+        font-weight: 600;
+        margin-top: 2px;
+      }
+      .msg {
+        font-size: 14px;
+        color: var(--muted);
+        min-height: 20px;
+        margin-bottom: 0.75rem;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .chip {
+        font-size: 13px;
+        padding: 5px 10px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        cursor: pointer;
+      }
+      .chip:hover {
+        background: var(--muted-surface);
+      }
+      .chip.sel {
+        background: var(--accent-bg);
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+      .chip .pts {
+        color: var(--muted);
+        margin-left: 5px;
+      }
+      .chip.sel .pts {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Boggle solver</h1>
+      <p class="sub">
+        Generate a board, trace any word to watch its tile path light up, or
+        solve the whole board with live scoring. Uses a small built-in word
+        list.
+      </p>
+
+      <div class="controls">
+        <button id="new">New board</button>
+        <input id="input" type="text" placeholder="Type a word to trace" />
+        <button id="trace">Trace</button>
+        <button id="solve">Solve</button>
+      </div>
+
+      <div class="board">
+        <svg class="svg" id="svg" width="264" height="264" viewBox="0 0 264 264">
+          <defs>
+            <marker id="arrow" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6 Z" fill="#185fa5"></path>
+            </marker>
+          </defs>
+          <polyline id="line" fill="none" stroke="#185fa5" stroke-width="3"
+            stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"></polyline>
+        </svg>
+        <div class="grid" id="grid"></div>
+      </div>
+
+      <div class="msg" id="msg">
+        Tap “Solve” to find every word, or type one to trace its path.
+      </div>
+
+      <div class="cards">
+        <div class="card"><div class="lab">Words found</div><div class="val" id="count">—</div></div>
+        <div class="card"><div class="lab">Total score</div><div class="val" id="score">—</div></div>
+        <div class="card"><div class="lab">Longest</div><div class="val" id="long" style="font-size: 18px;">—</div></div>
+      </div>
+
+      <div class="chips" id="chips"></div>
+    </main>
+
+    <script>
+      var DICE = [
+        ["A", "A", "E", "E", "G", "N"], ["A", "B", "B", "J", "O", "O"],
+        ["A", "C", "H", "O", "P", "S"], ["A", "F", "F", "K", "P", "S"],
+        ["A", "O", "O", "T", "T", "W"], ["C", "I", "M", "O", "T", "U"],
+        ["D", "E", "I", "L", "R", "X"], ["D", "E", "L", "R", "V", "Y"],
+        ["D", "I", "S", "T", "T", "Y"], ["E", "E", "G", "H", "N", "W"],
+        ["E", "E", "I", "N", "S", "U"], ["E", "H", "R", "T", "V", "W"],
+        ["E", "I", "O", "S", "S", "T"], ["E", "L", "R", "T", "T", "Y"],
+        ["H", "I", "M", "N", "Qu", "U"], ["H", "L", "N", "N", "R", "Z"]
+      ];
+
+      var WORDS = ("the and for are you all any can her one our out day get has new now old see two way man boy "
+        + "ace age ago aid aim air ale ant ape apt ash ask ate eat tea sea see eel ear era are art rat tar "
+        + "cat dog run sun fun bat hat mat sat pat tap map cap nap lap rap lip tip rip dip hip sip pin win bin "
+        + "ten pen hen den men net pet set wet bet let bed red led wed bad mad sad lad had pad big pig dig fig "
+        + "top hop mop pop cop bog log fog hog jog cog box fox mix six fix "
+        + "ball bell bill book boot bore bark barn bear beat best bird blue boat bone "
+        + "cake call calm card care cart case cash cast city cold cool corn cost crop "
+        + "deal dear deep desk dial dice dirt dish dome done door dose down drum dust "
+        + "each earn east easy edge ever evil exit "
+        + "face fact fail fair fall fame farm fast fear feel feet fell file fill film find fine fire fish five flag flat food foot fork form four free frog from full fund "
+        + "gain game gate gear gift girl give glad goal goat gold golf good gray grid grim grin grow "
+        + "hair half hall hand hang hard harm hate have head heal hear heat held help herd here hero hide high hill hint hire hold hole home hood hook hope horn host hour huge hunt hurt "
+        + "idea inch into iron item join joke jump just "
+        + "keen keep kept kick kind king kiss kite knee knew knot know "
+        + "lace lack lady lake lamb lamp land lane last late lazy lead leaf lean leap left lend lens lift like lime line link lion list live load loan lock long look loop lord lose loss lost loud love luck "
+        + "made mail main make male mall many mark mask mass mate meal mean meat meet melt mend menu mild mile milk mill mind mine mint miss mist mode mood moon more most move much must "
+        + "name near neat neck need nest news next nice nine node none nose note noun "
+        + "oath obey odds okay once only onto open oval oven over "
+        + "pace pack page paid pain pair pale palm park part pass past path peak pear peer pile pill pine pink pipe plan play plot plug plum plus poem poet pole pond pool poor pork port post pour pull pump pure push "
+        + "race rack rail rain rank rare rate read real rear rent rest rice rich ride ring rise risk road roar rock role roll roof room root rope rose rule rush "
+        + "sail sake sale salt same sand save scan seal seat seed seek seem seen self sell send sent ship shoe shop shot show shut side sign silk sing sink site size skin skip slap slid slip slot slow snap snow soap sock soft soil sold sole some song soon sort soul soup sour spin spit spot star stay stem step stop such suit sure swim "
+        + "take tale talk tall tame tank tape task team tear tell tend tent term test text than that them then they thin this tide tile time tiny toad toll tomb tone took tool torn tour town trap tree trim trip true tube tune turn twin type "
+        + "ugly unit upon urge used user vain vary vast veil very vest view vine void vote "
+        + "wade wage wait wake walk wall want ward warm warn wash wave wear week well went were west what when wide wife wild will wind wine wing wipe wire wise wish with wolf wood wool word wore work worm worn wrap "
+        + "yard yarn yawn year yell zero zone zoom").split(/\s+/);
+
+      var grid = [];
+      var matches = [];
+
+      function rnd(n) {
+        return Math.floor(Math.random() * n);
+      }
+
+      function makeBoard() {
+        var d = DICE.slice();
+        for (var i = d.length - 1; i > 0; i -= 1) {
+          var j = rnd(i + 1);
+          var t = d[i];
+          d[i] = d[j];
+          d[j] = t;
+        }
+        var b = [];
+        var k = 0;
+        for (var r = 0; r < 4; r += 1) {
+          var row = [];
+          for (var c = 0; c < 4; c += 1) {
+            row.push(d[k][rnd(6)]);
+            k += 1;
+          }
+          b.push(row);
+        }
+        return b;
+      }
+
+      function scoreWord(w) {
+        var n = w.length;
+        if (n < 3) return 0;
+        if (n >= 8) return 11;
+        return { 3: 1, 4: 1, 5: 2, 6: 3, 7: 5 }[n];
+      }
+
+      function neighbors(r, c) {
+        var out = [];
+        for (var dr = -1; dr <= 1; dr += 1) {
+          for (var dc = -1; dc <= 1; dc += 1) {
+            if (dr === 0 && dc === 0) continue;
+            var nr = r + dr;
+            var nc = c + dc;
+            if (nr >= 0 && nr < 4 && nc >= 0 && nc < 4) out.push([nr, nc]);
+          }
+        }
+        return out;
+      }
+
+      function collect(dict) {
+        var byNorm = {};
+        var prefixes = {};
+        for (var i = 0; i < dict.length; i += 1) {
+          var w = dict[i];
+          if (typeof w !== "string" || w.length < 3) continue;
+          var nw = w.toLowerCase();
+          if (!byNorm[nw]) byNorm[nw] = w;
+          for (var e = 1; e <= nw.length; e += 1) prefixes[nw.slice(0, e)] = true;
+        }
+        var visited = [
+          [false, false, false, false], [false, false, false, false],
+          [false, false, false, false], [false, false, false, false]
+        ];
+        var found = {};
+        function search(r, c, pre, path) {
+          var cand = pre + grid[r][c].toLowerCase();
+          if (!prefixes[cand]) return;
+          var np = path.concat([[r, c]]);
+          if (cand.length >= 3 && byNorm[cand] && !found[cand]) {
+            found[cand] = { word: byNorm[cand], path: np };
+          }
+          visited[r][c] = true;
+          var ns = neighbors(r, c);
+          for (var i = 0; i < ns.length; i += 1) {
+            if (!visited[ns[i][0]][ns[i][1]]) {
+              search(ns[i][0], ns[i][1], cand, np);
+            }
+          }
+          visited[r][c] = false;
+        }
+        for (var r = 0; r < 4; r += 1) {
+          for (var c = 0; c < 4; c += 1) search(r, c, "", []);
+        }
+        return Object.keys(found).map(function (k) {
+          return found[k];
+        });
+      }
+
+      function solveAll() {
+        return collect(WORDS)
+          .map(function (m) {
+            return { word: m.word, path: m.path, score: scoreWord(m.word) };
+          })
+          .sort(function (a, b) {
+            return (
+              b.score - a.score ||
+              b.word.length - a.word.length ||
+              a.word.localeCompare(b.word)
+            );
+          });
+      }
+
+      function findWord(word) {
+        var ms = collect([word]);
+        return ms.length ? ms[0].path : null;
+      }
+
+      function renderGrid() {
+        var g = document.getElementById("grid");
+        g.innerHTML = "";
+        for (var r = 0; r < 4; r += 1) {
+          for (var c = 0; c < 4; c += 1) {
+            var t = document.createElement("div");
+            t.className = "tile";
+            t.id = "t-" + r + "-" + c;
+            t.textContent = grid[r][c];
+            g.appendChild(t);
+          }
+        }
+      }
+
+      function clearPath() {
+        var tiles = document.querySelectorAll(".tile");
+        for (var i = 0; i < tiles.length; i += 1) {
+          tiles[i].classList.remove("on");
+          var b = tiles[i].querySelector(".badge");
+          if (b) b.remove();
+        }
+        document.getElementById("line").setAttribute("points", "");
+      }
+
+      function drawPath(path) {
+        clearPath();
+        var pts = [];
+        for (var i = 0; i < path.length; i += 1) {
+          var el = document.getElementById("t-" + path[i][0] + "-" + path[i][1]);
+          el.classList.add("on");
+          var badge = document.createElement("div");
+          badge.className = "badge";
+          badge.textContent = i + 1;
+          el.appendChild(badge);
+          pts.push(
+            el.offsetLeft + el.offsetWidth / 2 + "," +
+              (el.offsetTop + el.offsetHeight / 2)
+          );
+        }
+        document.getElementById("line").setAttribute("points", pts.join(" "));
+      }
+
+      function renderResults() {
+        var totalScore = 0;
+        var longest = "";
+        for (var i = 0; i < matches.length; i += 1) {
+          totalScore += matches[i].score;
+          if (matches[i].word.length > longest.length) longest = matches[i].word;
+        }
+        document.getElementById("count").textContent = matches.length;
+        document.getElementById("score").textContent = totalScore;
+        document.getElementById("long").textContent = longest || "—";
+
+        var box = document.getElementById("chips");
+        box.innerHTML = "";
+        matches.forEach(function (m) {
+          var chip = document.createElement("button");
+          chip.className = "chip";
+          chip.innerHTML = m.word + '<span class="pts">' + m.score + "</span>";
+          chip.onclick = function () {
+            var all = box.querySelectorAll(".chip");
+            for (var k = 0; k < all.length; k += 1) all[k].classList.remove("sel");
+            chip.classList.add("sel");
+            drawPath(m.path);
+            document.getElementById("msg").textContent =
+              m.word + " — " + m.path.length + " tiles, " + m.word.length +
+              " letters, " + m.score + (m.score === 1 ? " point" : " points");
+          };
+          box.appendChild(chip);
+        });
+      }
+
+      function reset() {
+        grid = makeBoard();
+        matches = [];
+        renderGrid();
+        clearPath();
+        document.getElementById("chips").innerHTML = "";
+        document.getElementById("count").textContent = "—";
+        document.getElementById("score").textContent = "—";
+        document.getElementById("long").textContent = "—";
+        document.getElementById("msg").textContent =
+          "New board ready. Solve it, or type a word to trace.";
+      }
+
+      function doTrace() {
+        var w = document.getElementById("input").value.trim();
+        if (!w) return;
+        var path = findWord(w);
+        document.getElementById("chips").innerHTML = "";
+        if (path) {
+          drawPath(path);
+          document.getElementById("msg").textContent =
+            "“" + w + "” found — " + path.length + " tiles, " + w.length +
+            " letters, " + scoreWord(w) + (scoreWord(w) === 1 ? " point" : " points");
+        } else {
+          clearPath();
+          document.getElementById("msg").textContent =
+            "“" + w + "” is not on this board.";
+        }
+      }
+
+      document.getElementById("new").onclick = reset;
+      document.getElementById("solve").onclick = function () {
+        matches = solveAll();
+        clearPath();
+        renderResults();
+        document.getElementById("msg").textContent = matches.length
+          ? "Found " + matches.length + " words. Tap any to see its path."
+          : "No dictionary words on this board — try a new one.";
+      };
+      document.getElementById("trace").onclick = doTrace;
+      document.getElementById("input").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") doTrace();
+      });
+
+      reset();
+    </script>
+  </body>
+</html>
